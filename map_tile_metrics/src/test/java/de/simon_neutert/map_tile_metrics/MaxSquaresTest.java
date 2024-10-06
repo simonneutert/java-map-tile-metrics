@@ -164,6 +164,48 @@ class MaxSquaresTest {
         expected.add(expectedTile2);
         expected.add(expectedTile3);
 
-        assertEquals(expected, classUnderTest.calculate());
+        ArrayList<HashMap<Point, Integer>> actual = classUnderTest.calculate();
+        assertTrue(expected.size() == actual.size() && expected.containsAll(actual) && actual.containsAll(expected));
+    }
+
+    @Test
+    void findMaxSquaresForTestDataMicro() {
+        String filePath = "src/test/resources/test_data_micro.json";
+        String content = "";
+        List<Point> jsonPoints = new ArrayList<Point>();
+
+        try {
+            content = new String(Files.readAllBytes(Paths.get(filePath)));
+            jsonPoints = JSON.std.listOfFrom(Point.class, content);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        HashSet<Point> points = new HashSet<Point>();
+        jsonPoints.stream().forEach(point -> points.add(point));
+
+        Clusters clusterService = new Clusters(points);
+        HashMap<String, ArrayList<HashSet<Point>>> clusters = clusterService.calculate();
+
+        ArrayList<HashSet<Point>> maxClusters = clusters.get("maxClusters");
+        assertEquals(1102, maxClusters.get(0).size());
+        assertEquals(1, maxClusters.size());
+
+        ArrayList<HashSet<Point>> clusterForSquares = clusters.get("clusters");
+        MaxSquares classUnderTest = new MaxSquares(clusterForSquares, points);
+        ArrayList<HashMap<Point, Integer>> maxSquares = classUnderTest.calculate();
+        assertEquals(2, maxSquares.size());
+        assertEquals(13, maxSquares.get(0).values().toArray()[0]);
+        HashMap<Point, Integer> firstOfTwoMaxSquares = maxSquares.get(0);
+        assertEquals(new Point(34254, 22223), firstOfTwoMaxSquares.keySet().toArray()[0]);
+        HashMap<Point, Integer> secondsOfTwoMaxSquares = maxSquares.get(1);
+        assertEquals(new Point(34255, 22223), secondsOfTwoMaxSquares.keySet().toArray()[0]);
+
+        var expected = new ArrayList<HashMap<Point, Integer>>();
+        expected.add(firstOfTwoMaxSquares);
+        expected.add(secondsOfTwoMaxSquares);
+        assertTrue(expected.size() == maxSquares.size() &&
+                expected.containsAll(maxSquares) &&
+                maxSquares.containsAll(expected));
     }
 }
