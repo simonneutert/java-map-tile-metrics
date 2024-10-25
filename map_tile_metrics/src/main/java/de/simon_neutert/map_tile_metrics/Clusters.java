@@ -6,6 +6,7 @@ package de.simon_neutert.map_tile_metrics;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -73,12 +74,15 @@ public class Clusters {
     }
 
     HashSet<Point> detectClusterPoints(HashSet<Point> points) {
-        HashSet<Point> clusters = new HashSet<Point>();
-        for (Point point : points) {
+        ConcurrentLinkedQueue<Point> clustersQ = new ConcurrentLinkedQueue<Point>();
+
+        points.parallelStream().forEach(point -> {
             if (validFourNeighbors(getNeighborsForPoint(point), points)) {
-                clusters.add(point);
+                clustersQ.add(point);
             }
-        }
+        });
+        HashSet<Point> clusters = new HashSet<Point>();
+        clustersQ.forEach(clusters::add);
         return clusters;
     }
 

@@ -2,6 +2,7 @@
 package de.simon_neutert.map_tile_metrics;
 
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.stream.Collectors;
@@ -81,10 +82,11 @@ public class MaxSquares {
         }
 
         addBorderToClusters();
-        ArrayList<HashMap<Point, Integer>> maxSquares = new ArrayList<HashMap<Point, Integer>>();
-        ArrayList<Integer> maxSquaresSizes = new ArrayList<Integer>();
 
-        for (HashSet<Point> cluster : clusters) {
+        ConcurrentLinkedQueue<HashMap<Point, Integer>> maxSquaresColl = new ConcurrentLinkedQueue<HashMap<Point, Integer>>();
+        ConcurrentLinkedQueue<Integer> maxSquaresSizes = new ConcurrentLinkedQueue<Integer>();
+
+        clusters.parallelStream().forEach(cluster -> {
             for (Point point : cluster) {
                 int maxSquareSize = 0;
                 while (validSquare(point, cluster, maxSquareSize)) {
@@ -93,18 +95,19 @@ public class MaxSquares {
                 if (maxSquareSize > 3) {
                     HashMap<Point, Integer> newTile = new HashMap<Point, Integer>();
                     newTile.put(point, maxSquareSize);
-                    maxSquares.add(newTile);
+                    maxSquaresColl.add(newTile);
                     maxSquaresSizes.add(maxSquareSize);
                 }
             }
-        }
+        });
 
         int maxSquareSize = maxSquaresSizes.stream()
                 .max(Comparator.naturalOrder())
                 .get();
-        maxSquares = maxSquares.stream()
+        ArrayList<HashMap<Point, Integer>> maxSquares = maxSquaresColl.stream()
                 .filter(tile -> tile.values().contains(maxSquareSize))
                 .collect(Collectors.toCollection(ArrayList::new));
+
         return maxSquares;
     }
 
@@ -148,11 +151,11 @@ public class MaxSquares {
         if (getBordersAdded()) {
             throw new RuntimeException("Borders already added");
         }
-        ArrayList<HashSet<Point>> nextClusters = new ArrayList<HashSet<Point>>();
+        ConcurrentLinkedQueue<HashSet<Point>> nextClustersQ = new ConcurrentLinkedQueue<HashSet<Point>>();
 
-        for (HashSet<Point> cluster : getClusters()) {
+        getClusters().parallelStream().forEach(cluster -> {
             HashSet<Point> nextCluster = new HashSet<Point>();
-            nextClusters.add(nextCluster);
+            nextClustersQ.add(nextCluster);
 
             for (Point point : cluster) {
                 nextCluster.add(point);
@@ -163,7 +166,11 @@ public class MaxSquares {
                     }
                 }
             }
-        }
+        });
+
+        ArrayList<HashSet<Point>> nextClusters = new ArrayList<HashSet<Point>>();
+        nextClusters.addAll(nextClustersQ);
+
         setBordersAdded(true);
         setClusters(nextClusters);
         return nextClusters;
