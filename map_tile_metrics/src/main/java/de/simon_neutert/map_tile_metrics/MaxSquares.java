@@ -87,14 +87,14 @@ public class MaxSquares {
         for (HashSet<Point> cluster : clusters) {
             for (Point point : cluster) {
                 int maxSquareSize = 0;
-                while (createGrid(point, maxSquareSize).stream().allMatch(p -> cluster.contains(p))) {
+                while (validSquare(point, cluster, maxSquareSize)) {
                     maxSquareSize++;
                 }
                 if (maxSquareSize > 3) {
                     HashMap<Point, Integer> newTile = new HashMap<Point, Integer>();
-                    newTile.put(point, maxSquareSize - 1);
+                    newTile.put(point, maxSquareSize);
                     maxSquares.add(newTile);
-                    maxSquaresSizes.add(maxSquareSize - 1);
+                    maxSquaresSizes.add(maxSquareSize);
                 }
             }
         }
@@ -121,16 +121,15 @@ public class MaxSquares {
      * @param point the starting point of the grid
      * @param steps the number of steps to extend the grid in both x and y
      *              directions
-     * @return a HashSet of Points representing the grid
+     * @return true if all points in the grid are part of the cluster, false
      */
-    HashSet<Point> createGrid(Point point, int steps) {
+    Boolean validSquare(Point point, HashSet<Point> cluster, int steps) {
         HashSet<Point> grid = new HashSet<Point>();
         for (int i = 0; i < steps; i++) {
-            for (int j = 0; j < steps; j++) {
-                grid.add(new Point(point.x() + i, point.y() + j));
-            }
+            grid.add(new Point(point.x() + i, point.y() + steps));
+            grid.add(new Point(point.x() + steps, point.y() + i));
         }
-        return grid;
+        return grid.stream().allMatch(p -> cluster.contains(p));
     }
 
     /**
